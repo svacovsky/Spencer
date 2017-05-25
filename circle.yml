@@ -1,0 +1,42 @@
+machine:
+  node:
+    version: 6
+  environment:
+    CF_API: https://api.fr.cloud.gov
+    CF_USERNAME: fbi-crime-explorer_deployer
+    CF_ORGANIZATION: fbi-crime-explorer
+    CF_SPACE: prototype
+    CF_APP: crime-data-explorer
+
+dependencies:
+  cache_directories:
+    - ./node_modules
+
+test:
+  override:
+    - npm run lint
+    - npm run test
+    - npm run coverage
+
+deployment:
+  master:
+    branch: master
+    commands:
+      - curl -v -L -o cf-cli_amd64.deb 'https://cli.run.pivotal.io/stable?release=debian64&source=github'
+      - sudo dpkg -i cf-cli_amd64.deb
+      - npm run build
+      - cf install-plugin autopilot -f -r CF-Community
+      - cf api $CF_API
+      - cf auth $CF_USERNAME $CF_PASSWORD && cf target -o $CF_ORGANIZATION -s $CF_SPACE
+      - cf zero-downtime-push $CF_APP -f manifests/master.yml
+  release:
+    tag: /v[0-9]+(\.[0-9]+)*/
+    owner: 18f
+    commands:
+      - curl -v -L -o cf-cli_amd64.deb 'https://cli.run.pivotal.io/stable?release=debian64&source=github'
+      - sudo dpkg -i cf-cli_amd64.deb
+      - npm run build
+      - cf install-plugin autopilot -f -r CF-Community
+      - cf api $CF_API
+      - cf auth $CF_USERNAME $CF_PASSWORD && cf target -o $CF_ORGANIZATION -s $CF_SPACE
+      - cf zero-downtime-push $CF_APP -f manifests/demo.yml
